@@ -30,6 +30,14 @@ export interface ShowDetails extends Show {
   runtime?: number;
 }
 
+export interface Update {
+  id: number;
+  recordType: 'series' | 'movie' | 'episode';
+  recordId: number;
+  method: string;
+  timestamp: number;
+}
+
 export interface TvShowsState {
   token: string | null;
   shows: Show[];
@@ -37,6 +45,7 @@ export interface TvShowsState {
   popularShows: Show[];
   isAuthenticating: boolean;
   selectedShow: ShowDetails | null;
+  notifications: Update[];
 }
 
 const apiKey: string | undefined = import.meta.env.VITE_THETVDB_API_KEY;
@@ -47,7 +56,6 @@ if (!apiKey) {
 const baseUrl = 'https://api4.thetvdb.com/v4';
 const imageBaseUrl = 'https://artworks.thetvdb.com';
 
-// Función para normalizar las listas principales
 function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | string): Show[] {
   if (!Array.isArray(apiData)) return [];
   return apiData.map((item: any) => {
@@ -62,16 +70,13 @@ function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | str
   });
 }
 
-// --- FUNCIÓN DE NORMALIZACIÓN MEJORADA ---
 function normalizeDetailResponse(item: any): ShowDetails {
-  // Normaliza las imágenes del elenco (characters)
   if (item.characters) {
     item.characters = item.characters.map((actor: any) => ({
       ...actor,
       image: actor.image ? `${imageBaseUrl}${actor.image}` : null,
     }));
   }
-  // Normaliza las imágenes de la galería (artworks)
   if (item.artworks) {
     item.artworks = item.artworks.map((art: any) => ({
       ...art,
@@ -90,10 +95,11 @@ export const useTvShowsStore = defineStore('tvShows', {
     popularShows: [],
     isAuthenticating: false,
     selectedShow: null,
+    notifications: [],
   }),
 
+  // **AQUÍ ESTÁ LA CORRECCIÓN: TODAS LAS ACCIONES JUNTAS**
   actions: {
-    // ... (El resto de las acciones no necesitan cambios)
     async fetchToken(): Promise<string | null> {
       if (this.token) return this.token;
       if (this.isAuthenticating) {
@@ -119,6 +125,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.isAuthenticating = false;
       }
     },
+    
     async fetchFromApi(endpoint: string) {
       const token = await this.fetchToken();
       if (!token) throw new Error('Autenticación fallida. El token es nulo.');
@@ -133,6 +140,7 @@ export const useTvShowsStore = defineStore('tvShows', {
       }
       return response.json();
     },
+
     async fetchPopularMovies() {
       try {
         const response = await this.fetchFromApi('/movies');
@@ -142,6 +150,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.recommendedMovies = [];
       }
     },
+
     async fetchPopularShows() {
       try {
         const response = await this.fetchFromApi('/series');
@@ -151,6 +160,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.popularShows = [];
       }
     },
+    
     async searchShows(query: string) {
       try {
         const response = await this.fetchFromApi(`/search?query=${encodeURIComponent(query)}`);
@@ -160,6 +170,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.shows = [];
       }
     },
+    
     async fetchDetails(id: string, type: 'movie' | 'series') {
       this.selectedShow = null;
       try {
@@ -172,6 +183,20 @@ export const useTvShowsStore = defineStore('tvShows', {
       } catch (error) {
         console.error(`Error obteniendo los detalles para ${type} ${id}:`, error);
         this.selectedShow = null;
+      }
+    },
+
+    async checkForUpdates() {
+      try {
+        const lastCheckTimestamp = localStorage.getItem('lastUpdateCheck') || '0';
+        const response = await this.fetchFromApi(`/updates?since=${lastCheckTimestamp}`);
+        this.notifications = response.data.filter(
+          (update: Update) => update.recordType === 'series' || update.recordType === 'movie'
+        );
+        const newTimestamp = Math.floor(Date.now() / 1000);
+        localStorage.setItem('lastUpdateCheck', newTimestamp.toString());
+      } catch (error) {
+        console.error("Error obteniendo actualizaciones:", error);
       }
     },
   },
