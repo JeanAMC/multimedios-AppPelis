@@ -27,7 +27,7 @@ onMounted(() => {
             class="card-link"
           >
             <article class="card">
-              <img :src="movie.image_url" :alt="movie.name" />
+              <img :src="movie.image_url ?? ''" :alt="movie.name ?? ''" />
               <p>{{ movie.name }}</p>
             </article>
           </RouterLink>
@@ -47,7 +47,7 @@ onMounted(() => {
           class="card-link"
         >
           <article class="card">
-            <img :src="show.image_url" :alt="show.name" />
+            <img :src="show.image_url ?? ''" :alt="show.name ?? ''" />
             <p>{{ show.name }}</p>
           </article>
         </RouterLink>
@@ -84,7 +84,7 @@ onMounted(() => {
   height: 225px;
   object-fit: cover;
   border-radius: 8px;
-  background-color: #2c3e50; /* Color de fondo mientras carga la imagen */
+  background-color: #2c3e50; 
 }
 .card p {
     margin-top: 8px;

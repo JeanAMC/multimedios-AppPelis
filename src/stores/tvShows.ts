@@ -56,6 +56,15 @@ if (!apiKey) {
 const baseUrl = 'https://api4.thetvdb.com/v4';
 const imageBaseUrl = 'https://artworks.thetvdb.com';
 
+function isAbsoluteUrl(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+function prependIfRelative(url: string | null): string | null {
+  if (!url) return null;
+  return isAbsoluteUrl(url) ? url : `${imageBaseUrl}${url}`;
+}
+
 function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | string): Show[] {
   if (!Array.isArray(apiData)) return [];
   return apiData.map((item: any) => {
@@ -63,26 +72,30 @@ function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | str
     return {
       id: item.id,
       name: item.name,
-      type: item.type || itemType, 
+      type: item.type || itemType,
       overview: item.overview ?? null,
-      image_url: imagePath ? `${imageBaseUrl}${imagePath}` : null,
+      image_url: prependIfRelative(imagePath),
     };
   });
 }
 
 function normalizeDetailResponse(item: any): ShowDetails {
+  item.image_url = prependIfRelative(item.image || item.poster || item.image_url || null);
+
   if (item.characters) {
     item.characters = item.characters.map((actor: any) => ({
       ...actor,
-      image: actor.image ? `${imageBaseUrl}${actor.image}` : null,
+      image: prependIfRelative(actor.image),
     }));
   }
+
   if (item.artworks) {
     item.artworks = item.artworks.map((art: any) => ({
       ...art,
-      image: art.image ? `${imageBaseUrl}${art.image}` : null,
+      image: prependIfRelative(art.image),
     }));
   }
+
   return item;
 }
 
@@ -98,7 +111,6 @@ export const useTvShowsStore = defineStore('tvShows', {
     notifications: [],
   }),
 
-  // **AQUÍ ESTÁ LA CORRECCIÓN: TODAS LAS ACCIONES JUNTAS**
   actions: {
     async fetchToken(): Promise<string | null> {
       if (this.token) return this.token;
@@ -125,7 +137,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.isAuthenticating = false;
       }
     },
-    
+
     async fetchFromApi(endpoint: string) {
       const token = await this.fetchToken();
       if (!token) throw new Error('Autenticación fallida. El token es nulo.');
@@ -160,7 +172,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.popularShows = [];
       }
     },
-    
+
     async searchShows(query: string) {
       try {
         const response = await this.fetchFromApi(`/search?query=${encodeURIComponent(query)}`);
@@ -170,7 +182,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.shows = [];
       }
     },
-    
+
     async fetchDetails(id: string, type: 'movie' | 'series') {
       this.selectedShow = null;
       try {
