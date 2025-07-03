@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Show } from './tvShows'
 
-// Interfaz para un show que se está viendo y tiene progreso
 export interface WatchingShow extends Show {
   progress: {
     season: number
@@ -11,7 +10,6 @@ export interface WatchingShow extends Show {
   }
 }
 
-// Función para obtener datos de localStorage de forma segura
 const getFromStorage = <T>(key: string, defaultValue: T): T => {
   if (typeof localStorage === 'undefined') {
     return defaultValue;
@@ -26,36 +24,52 @@ const getFromStorage = <T>(key: string, defaultValue: T): T => {
 };
 
 export const useUserListStore = defineStore('userList', () => {
-  // --- STATE ---
-  // Las listas se inicializan con datos de localStorage o como objetos vacíos
   const watchlist = ref<Record<number, Show>>(getFromStorage('user_watchlist', {}));
   const favorites = ref<Record<number, Show>>(getFromStorage('user_favorites', {}));
   const watched = ref<Record<number, Show>>(getFromStorage('user_watched', {}));
-  const watching = ref<Record<number, WatchingShow>>(getFromStorage('user_watching', {}));
+  
+  const watching = ref<Record<number, WatchingShow>>(getFromStorage('user_watching', {
+    '27436': {
+      id: 27436,
+      name: 'The Boys',
+      type: 'series',
+      overview: '',
+      image_url: 'https://artworks.thetvdb.com/banners/v4/series/355413/posters/6296892334823.jpg',
+      progress: { season: 2, episode: 4, totalEpisodes: 8 }
+    },
+    '121361': {
+      id: 121361,
+      name: 'Game of Thrones',
+      type: 'series',
+      overview: '',
+      image_url: 'https://artworks.thetvdb.com/banners/posters/121361-4.jpg',
+      progress: { season: 8, episode: 3, totalEpisodes: 6 }
+    },
+    '81189': {
+      id: 81189,
+      name: 'Breaking Bad',
+      type: 'series',
+      overview: '',
+      image_url: 'https://artworks.thetvdb.com/banners/posters/81189-1.jpg',
+      progress: { season: 5, episode: 10, totalEpisodes: 16 }
+    }
+  }));
 
-  // --- GETTERS ---
-  // Convierten los objetos a arrays para usarlos fácilmente en los v-for de Vue
   const watchlistArray = computed(() => Object.values(watchlist.value));
   const favoritesArray = computed(() => Object.values(favorites.value));
   const watchedArray = computed(() => Object.values(watched.value));
   const watchingArray = computed(() => Object.values(watching.value));
 
-  // --- PERSISTENCIA ---
-  // Observadores que guardan los cambios de cada lista en localStorage
   watch(watchlist, (val) => localStorage.setItem('user_watchlist', JSON.stringify(val)), { deep: true });
   watch(favorites, (val) => localStorage.setItem('user_favorites', JSON.stringify(val)), { deep: true });
   watch(watched, (val) => localStorage.setItem('user_watched', JSON.stringify(val)), { deep: true });
   watch(watching, (val) => localStorage.setItem('user_watching', JSON.stringify(val)), { deep: true });
-
-  // --- ACTIONS ---
-  // Funciones para manipular las listas
 
   function toggleWatchlist(show: Show) {
     if (watchlist.value[show.id]) {
       delete watchlist.value[show.id];
     } else {
       watchlist.value[show.id] = show;
-      // Si se añade a watchlist, se quita de 'watched'
       if (watched.value[show.id]) delete watched.value[show.id];
     }
   }
@@ -73,7 +87,6 @@ export const useUserListStore = defineStore('userList', () => {
       delete watched.value[show.id];
     } else {
       watched.value[show.id] = show;
-      // Si se marca como visto, se quita de 'watchlist' y 'watching'
       if (watchlist.value[show.id]) delete watchlist.value[show.id];
       if (watching.value[show.id]) delete watching.value[show.id];
     }
@@ -87,7 +100,6 @@ export const useUserListStore = defineStore('userList', () => {
         progress: { season: 1, episode: 1, totalEpisodes: totalEpisodes }
       };
 
-      // Si se empieza a ver, se quita de 'watchlist' y 'watched'
       if (watchlist.value[show.id]) delete watchlist.value[show.id];
       if (watched.value[show.id]) delete watched.value[show.id];
   }
@@ -97,28 +109,22 @@ export const useUserListStore = defineStore('userList', () => {
     if (show && show.progress.episode < show.progress.totalEpisodes) {
         show.progress.episode++;
     } else if (show) {
-        // Si se completa el último episodio, se mueve a 'watched'
         toggleWatched(show);
     }
   }
 
-  // --- RETURN ---
-  // Se exponen todas las propiedades y funciones necesarias para los componentes
   return {
-    // Arrays para mostrar en las vistas
     watchlist: watchlistArray,
     favorites: favoritesArray,
     watched: watchedArray,
     watching: watchingArray,
     
-    // Acciones para manipular las listas
     toggleWatchlist,
     toggleFavorites,
     toggleWatched,
     startWatching,
     updateEpisodeProgress,
     
-    // Funciones "helper" para saber el estado de un show
     isInWatchlist: (id: number) => !!watchlist.value[id],
     isInFavorites: (id: number) => !!favorites.value[id],
     isInWatched: (id: number) => !!watched.value[id],

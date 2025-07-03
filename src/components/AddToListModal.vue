@@ -2,17 +2,14 @@
 import { useUserListStore } from '../stores/userList'
 import type { Show } from '../stores/tvShows'
 
-// Este componente recibe el 'show' como una propiedad (prop)
 const props = defineProps<{
   show: Show
 }>()
 
-// Definimos el evento que el componente emitirá para cerrarse
 const emit = defineEmits(['close'])
 
 const userListStore = useUserListStore()
 
-// Funciones que llaman a la store y luego cierran el modal
 function handleWatchlist() {
   userListStore.toggleWatchlist(props.show)
   emit('close')

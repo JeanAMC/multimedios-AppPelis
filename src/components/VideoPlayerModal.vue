@@ -1,10 +1,8 @@
 <script setup lang="ts">
-// Este componente espera recibir el ID del video de YouTube como una propiedad
 defineProps<{
   videoId: string;
 }>();
 
-// Define el evento 'close' que se emitirá para cerrar el modal
 const emit = defineEmits(['close']);
 </script>
 
@@ -40,7 +38,6 @@ const emit = defineEmits(['close']);
   position: relative;
   width: 90%;
   max-width: 800px;
-  /* Mantiene la proporción 16:9 de los videos */
   aspect-ratio: 16 / 9;
 }
 

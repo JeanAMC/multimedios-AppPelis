@@ -18,10 +18,9 @@ const performSearch = (searchQuery: string) => {
   }
 };
 
-// Observa cambios en la URL (ej: si el usuario busca algo nuevo desde la misma pág de búsqueda)
 watch(() => route.query.q, (newQuery) => {
   performSearch(newQuery as string);
-}, { immediate: true }); // immediate: true hace que se ejecute al cargar el componente
+}, { immediate: true }); 
 </script>
 
 <template>

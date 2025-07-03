@@ -44,9 +44,10 @@ export default {
   padding: 12px 20px;
   color: white;
   font-size: 1rem;
-  box-sizing: border-box; /* Importante para que el padding no afecte el ancho */
+  box-sizing: border-box; 
 }
 .search-input::placeholder {
   color: #888;
+  
 }
 </style>

@@ -25,7 +25,6 @@ const items = computed((): Show[] => {
   }
 });
 
-// Genera un título dinámico para la página
 const pageTitle = computed(() => {
   if (!listName.value) return 'Mi Lista';
   return `Mi ${listName.value.charAt(0).toUpperCase() + listName.value.slice(1)}`;

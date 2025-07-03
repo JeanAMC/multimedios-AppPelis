@@ -8,12 +8,9 @@ import VideoPlayerModal from '../components/VideoPlayerModal.vue';
 const route = useRoute();
 const showsStore = useTvShowsStore();
 const show = computed(() => showsStore.selectedShow);
-
-// Estado para controlar la visibilidad de los modales
 const isAddModalVisible = ref(false);
 const trailerToPlay = ref<string | null>(null);
 
-// Carga los detalles del show cuando el componente se monta
 onMounted(() => {
   const showId = route.params.id as string;
   const type = route.path.includes('/movie/') ? 'movie' : 'series';
@@ -103,7 +100,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Estilos generales y del layout */
 .details-container {
   position: relative;
   color: white;
@@ -166,7 +162,6 @@ onMounted(() => {
     transform: scale(1.05);
 }
 
-/* Estilos para las secciones de contenido */
 .section {
   margin-top: 40px;
 }
@@ -176,18 +171,14 @@ onMounted(() => {
   color: #ffdd57;
 }
 
-/* --- CAMBIO APLICADO AQUÍ --- */
 .horizontal-scroll {
   display: flex;
   gap: 15px;
   overflow-x: auto;
   padding-bottom: 10px;
-  /* Oculta la barra de scroll en Firefox */
   scrollbar-width: none;
-  /* Oculta la barra de scroll en IE y Edge */
   -ms-overflow-style: none;
 }
-/* Oculta la barra de scroll en navegadores Webkit (Chrome, Safari, etc.) */
 .horizontal-scroll::-webkit-scrollbar {
   display: none;
 }
@@ -238,7 +229,6 @@ onMounted(() => {
   color: #ccc;
 }
 
-/* Estilos para los cards de Trailer */
 .trailer-card {
   position: relative;
   flex: 0 0 250px;
@@ -258,7 +248,7 @@ onMounted(() => {
 }
 .trailer-card .play-icon {
   position: absolute;
-  top: 70px; /* Centrado verticalmente en la imagen */
+  top: 70px; 
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 2.5rem;
