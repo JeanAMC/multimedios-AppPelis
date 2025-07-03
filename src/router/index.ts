@@ -3,7 +3,11 @@ import MainView from '@/views/MainView.vue'
 import MyShowView from '@/views/MyShowView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
-import DetallesView from '@/views/DetallesView.vue' // Asegúrate de que este archivo exista
+import DetallesView from '@/views/DetallesView.vue'
+import NotificationsView from '@/views/NotificationsView.vue'
+import SearchView from '../views/SearchView.vue'; 
+import UserListView from '../views/UserListView.vue';
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -45,8 +49,24 @@ const router = createRouter({
           name: 'SeriesDetails',
           component: DetallesView,
         },
+        {
+          path: 'search',
+          name: 'Search',
+          component: SearchView,
+        },
+        {
+          path: 'my-lists/:listName', // :listName será 'watchlist', 'watched', etc.
+          name: 'UserList',
+          component: UserListView,
+        },
+        {
+         path: 'NotificationsView',
+         name: 'NotificationsView',
+         component: NotificationsView,
+      },
       ],
     },
+    
     // Redirección por defecto a login
     {
       path: '/:pathMatch(.*)*',

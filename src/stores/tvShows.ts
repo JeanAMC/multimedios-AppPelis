@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 
-// --- Interfaces y Configuración ---
 export interface Show {
   id: number;
   name: string;
@@ -28,6 +27,15 @@ export interface ShowDetails extends Show {
   artworks?: { id: number; image: string }[];
   nextAired?: { airDate: string; name: string };
   runtime?: number;
+  trailers?: { id: number; name: string; url: string; runtime: number; videoId: string }[];
+}
+
+export interface Update {
+  id: number;
+  recordType: 'series' | 'movie' | 'episode';
+  recordId: number;
+  method: string;
+  timestamp: number;
 }
 
 export interface TvShowsState {
@@ -37,6 +45,8 @@ export interface TvShowsState {
   popularShows: Show[];
   isAuthenticating: boolean;
   selectedShow: ShowDetails | null;
+  notifications: Update[];
+  searchResults: Show[];
 }
 
 const apiKey: string | undefined = import.meta.env.VITE_THETVDB_API_KEY;
@@ -47,41 +57,86 @@ if (!apiKey) {
 const baseUrl = 'https://api4.thetvdb.com/v4';
 const imageBaseUrl = 'https://artworks.thetvdb.com';
 
-// Función para normalizar las listas principales
-function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | string): Show[] {
+
+// --- FUNCIONES HELPER ---
+
+function isAbsoluteUrl(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+function prependIfRelative(url: string | null): string | null {
+  if (!url) return null;
+  return isAbsoluteUrl(url) ? url : `${imageBaseUrl}${url}`;
+}
+
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function normalizeApiResponse(apiData: any[], itemType?: 'movie' | 'series'): Show[] {
   if (!Array.isArray(apiData)) return [];
+  
   return apiData.map((item: any) => {
-    const imagePath = item.image || item.poster || item.image_url || null;
+    const record = item.record || item.series || item.movie || item;
+    const imagePath = record.image || record.poster || record.image_url || null;
+    
+    let cleanId = record.id;
+    if (typeof cleanId === 'string' && cleanId.includes('-')) {
+      cleanId = cleanId.split('-').pop(); 
+    }
+
     return {
-      id: item.id,
-      name: item.name,
-      type: item.type || itemType, 
-      overview: item.overview ?? null,
-      image_url: imagePath ? `${imageBaseUrl}${imagePath}` : null,
+      id: parseInt(cleanId, 10),
+      name: record.name,
+      type: record.type === 'series' || item.series ? 'series' : 'movie',
+      overview: record.overview ?? null,
+      image_url: prependIfRelative(imagePath),
     };
   });
 }
 
-// --- FUNCIÓN DE NORMALIZACIÓN MEJORADA ---
 function normalizeDetailResponse(item: any): ShowDetails {
-  // Normaliza las imágenes del elenco (characters)
+  item.image_url = prependIfRelative(item.image || item.poster || item.image_url || null);
+
   if (item.characters) {
     item.characters = item.characters.map((actor: any) => ({
       ...actor,
-      image: actor.image ? `${imageBaseUrl}${actor.image}` : null,
+      image: prependIfRelative(actor.image),
     }));
   }
-  // Normaliza las imágenes de la galería (artworks)
+
   if (item.artworks) {
     item.artworks = item.artworks.map((art: any) => ({
       ...art,
-      image: art.image ? `${imageBaseUrl}${art.image}` : null,
+      image: prependIfRelative(art.image),
     }));
   }
+
+  if (item.trailers) {
+    item.trailers = item.trailers
+      .map((trailer: any) => {
+        const videoId = extractYouTubeId(trailer.url);
+        if (videoId) {
+          return { ...trailer, videoId };
+        }
+        return null;
+      })
+      .filter((trailer: any) => trailer !== null);
+  }
+
+  if (item.seasons) {
+    item.seasons = item.seasons.map((season: any) => ({
+      ...season,
+      episodes_count: season.episodeCount 
+    }));
+  }
+
   return item;
 }
 
-// --- Definición del Store ---
 export const useTvShowsStore = defineStore('tvShows', {
   state: (): TvShowsState => ({
     token: null,
@@ -90,10 +145,11 @@ export const useTvShowsStore = defineStore('tvShows', {
     popularShows: [],
     isAuthenticating: false,
     selectedShow: null,
+    notifications: [],
+    searchResults: [],
   }),
 
   actions: {
-    // ... (El resto de las acciones no necesitan cambios)
     async fetchToken(): Promise<string | null> {
       if (this.token) return this.token;
       if (this.isAuthenticating) {
@@ -119,6 +175,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.isAuthenticating = false;
       }
     },
+
     async fetchFromApi(endpoint: string) {
       const token = await this.fetchToken();
       if (!token) throw new Error('Autenticación fallida. El token es nulo.');
@@ -133,6 +190,7 @@ export const useTvShowsStore = defineStore('tvShows', {
       }
       return response.json();
     },
+
     async fetchPopularMovies() {
       try {
         const response = await this.fetchFromApi('/movies');
@@ -142,6 +200,7 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.recommendedMovies = [];
       }
     },
+
     async fetchPopularShows() {
       try {
         const response = await this.fetchFromApi('/series');
@@ -151,20 +210,25 @@ export const useTvShowsStore = defineStore('tvShows', {
         this.popularShows = [];
       }
     },
-    async searchShows(query: string) {
+
+    async searchAll(query: string) {
+      this.searchResults = [];
+      if (!query || query.trim() === '') return;
       try {
         const response = await this.fetchFromApi(`/search?query=${encodeURIComponent(query)}`);
-        this.shows = normalizeApiResponse(response.data, '');
+        this.searchResults = normalizeApiResponse(response.data, '');
       } catch (error) {
         console.error('Error en la búsqueda:', error);
-        this.shows = [];
+        this.searchResults = [];
       }
     },
+
     async fetchDetails(id: string, type: 'movie' | 'series') {
       this.selectedShow = null;
       try {
-        const endpoint = type === 'series' ? `/series/${id}/extended` : `/movies/${id}`;
+        const endpoint = type === 'series' ? `/series/${id}/extended` : `/movies/${id}/extended`; 
         const response = await this.fetchFromApi(endpoint);
+  
         this.selectedShow = normalizeDetailResponse(response.data);
         if (this.selectedShow) {
           this.selectedShow.type = type;
@@ -172,6 +236,20 @@ export const useTvShowsStore = defineStore('tvShows', {
       } catch (error) {
         console.error(`Error obteniendo los detalles para ${type} ${id}:`, error);
         this.selectedShow = null;
+      }
+    },
+
+    async checkForUpdates() {
+      try {
+        const lastCheckTimestamp = localStorage.getItem('lastUpdateCheck') || '0';
+        const response = await this.fetchFromApi(`/updates?since=${lastCheckTimestamp}`);
+        this.notifications = response.data.filter(
+          (update: Update) => update.recordType === 'series' || update.recordType === 'movie'
+        );
+        const newTimestamp = Math.floor(Date.now() / 1000);
+        localStorage.setItem('lastUpdateCheck', newTimestamp.toString());
+      } catch (error) {
+        console.error("Error obteniendo actualizaciones:", error);
       }
     },
   },
