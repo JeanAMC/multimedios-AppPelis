@@ -30,7 +30,7 @@ const router = createRouter({
       path: '/',
       name: 'main',
       component: () => import('../layouts/MovieLayout.vue'),
-       meta: { requiresAuth: true },
+      //meta: { requiresAuth: true },
       children: [
         {
           path: 'MainView',

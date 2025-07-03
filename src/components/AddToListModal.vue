@@ -29,6 +29,7 @@ function handleWatched() {
 <template>
   <div class="modal-overlay" @click.self="emit('close')">
     <div class="modal-content">
+      
       <img :src="show.image_url || undefined" :alt="show.name" class="modal-poster">
       <h2>{{ show.name }}</h2>
       <p>Añadir a una de tus listas:</p>

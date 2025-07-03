@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Show } from './tvShows'
-
+import { addFavorite, removeFavorite } from '../services/favorites';
 export interface WatchingShow extends Show {
   progress: {
     season: number
@@ -74,13 +74,22 @@ export const useUserListStore = defineStore('userList', () => {
     }
   }
 
+
+  
   function toggleFavorites(show: Show) {
     if (favorites.value[show.id]) {
       delete favorites.value[show.id];
+       removeFavorite(show.id)
+      .then(() => console.log('Eliminado de favoritos en la base de datos'))
+      .catch(console.error)
     } else {
       favorites.value[show.id] = show;
+      addFavorite(show.id, show.name)
+      .then(() => console.log('Agregado a favoritos en la base de datos'))
+      .catch(console.error)
     }
   }
+
 
   function toggleWatched(show: Show) {
     if (watched.value[show.id]) {
