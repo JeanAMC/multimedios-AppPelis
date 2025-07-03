@@ -48,5 +48,6 @@ export default {
 }
 .search-input::placeholder {
   color: #888;
+  
 }
 </style>
