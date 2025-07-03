@@ -1,7 +1,7 @@
 <template>
   <div class="auth-card">
     <h2 class="title">{{ title }}</h2>
-    <form @submit.prevent="onSubmit">
+    <form @submit.prevent="handleSubmit">
       <slot />
       <button class="submit-btn" type="submit">{{ buttonText }}</button>
     </form>
@@ -9,12 +9,18 @@
 </template>
 
 <script lang="ts" setup>
-defineProps<{
+const props = defineProps<{
   title: string
   buttonText: string
   onSubmit: () => void
 }>()
+
+function handleSubmit() {
+  console.log('submit capturado en AuthForm')
+  props.onSubmit()
+}
 </script>
+
 
 <style scoped>
 .auth-card {

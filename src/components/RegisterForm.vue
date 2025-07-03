@@ -3,7 +3,7 @@
   <div class="register-form">
     <h2 class="form-title">Registrarse</h2>
     <AuthForm title="" buttonText="Crear cuenta" :onSubmit="onSubmit">
-      <input v-model="nombre" placeholder="Nombre" type="text" class="input" required />
+      <input v-model="name" placeholder="Nombre" type="text" class="input" required />
       <input v-model="email" placeholder="Email" type="email" class="input" required />
       <input v-model="password" placeholder="Contraseña" type="password" class="input" required />
       <input v-model="confirmPassword" placeholder="Confirmar contraseña" type="password" class="input" required />
@@ -15,20 +15,34 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AuthForm from '@/components/AuthForm.vue'
+import { useRouter } from 'vue-router'
 
+const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const authStore = useAuthStore()
+const router = useRouter()
 
-const onSubmit = () => {
+const onSubmit = async () => {
+  if (!name.value) {
+    alert('El nombre es obligatorio')
+    return
+  }
   if (password.value !== confirmPassword.value) {
     alert('Las contraseñas no coinciden')
     return
   }
-  authStore.register(email.value, password.value)
+  try {
+    await authStore.register(name.value, email.value, password.value, confirmPassword.value)
+    router.push('/MainView')
+  } catch (err) {
+    alert('Error al registrar')
+    console.error(err)
+  }
 }
 </script>
+
 
 <style scoped>
 .register-form {
