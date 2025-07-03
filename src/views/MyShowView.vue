@@ -2,8 +2,8 @@
 import { computed } from 'vue';
 import { useUserListStore } from '../stores/userList';
 import { RouterLink } from 'vue-router';
-import type { Show } from '../stores/tvShows';
-import SearchBar from '../components/SearchBar.vue'; // <-- 1. Se importa el componente
+import type { Show } from '../stores/tvShows'; 
+import SearchBar from '../components/SearchBar.vue'; 
 
 const userListStore = useUserListStore();
 

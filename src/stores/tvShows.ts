@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 
-// --- Interfaces y Configuración ---
 export interface Show {
   id: number;
   name: string;
@@ -22,7 +21,6 @@ export interface Season {
   episodes_count: number;
 }
 
-// 1. Interfaz actualizada para incluir trailers
 export interface ShowDetails extends Show {
   characters?: Actor[];
   seasons?: Season[];
@@ -71,7 +69,6 @@ function prependIfRelative(url: string | null): string | null {
   return isAbsoluteUrl(url) ? url : `${imageBaseUrl}${url}`;
 }
 
-// 2. Nueva función para extraer el ID de YouTube
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -79,21 +76,28 @@ function extractYouTubeId(url: string): string | null {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
-function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | string): Show[] {
+function normalizeApiResponse(apiData: any[], itemType?: 'movie' | 'series'): Show[] {
   if (!Array.isArray(apiData)) return [];
+  
   return apiData.map((item: any) => {
-    const imagePath = item.image || item.poster || item.image_url || null;
+    const record = item.record || item.series || item.movie || item;
+    const imagePath = record.image || record.poster || record.image_url || null;
+    
+    let cleanId = record.id;
+    if (typeof cleanId === 'string' && cleanId.includes('-')) {
+      cleanId = cleanId.split('-').pop(); 
+    }
+
     return {
-      id: item.id,
-      name: item.name,
-      type: item.type || itemType,
-      overview: item.overview ?? null,
+      id: parseInt(cleanId, 10),
+      name: record.name,
+      type: record.type === 'series' || item.series ? 'series' : 'movie',
+      overview: record.overview ?? null,
       image_url: prependIfRelative(imagePath),
     };
   });
 }
 
-// 3. Función de normalización de detalles ACTUALIZADA
 function normalizeDetailResponse(item: any): ShowDetails {
   item.image_url = prependIfRelative(item.image || item.poster || item.image_url || null);
 
@@ -111,25 +115,27 @@ function normalizeDetailResponse(item: any): ShowDetails {
     }));
   }
 
-  // Lógica añadida para procesar los trailers
   if (item.trailers) {
     item.trailers = item.trailers
       .map((trailer: any) => {
         const videoId = extractYouTubeId(trailer.url);
         if (videoId) {
-          // Devolvemos el objeto del trailer con el videoId añadido
           return { ...trailer, videoId };
         }
-        return null; // Descartamos si no es un video de YouTube
+        return null;
       })
-      .filter((trailer: any) => trailer !== null); // Limpiamos los resultados nulos
+      .filter((trailer: any) => trailer !== null);
+  }
+
+  if (item.seasons) {
+    item.seasons = item.seasons.map((season: any) => ({
+      ...season,
+      episodes_count: season.episodeCount 
+    }));
   }
 
   return item;
 }
-
-
-// --- DEFINICIÓN DEL STORE ---
 
 export const useTvShowsStore = defineStore('tvShows', {
   state: (): TvShowsState => ({
@@ -220,9 +226,9 @@ export const useTvShowsStore = defineStore('tvShows', {
     async fetchDetails(id: string, type: 'movie' | 'series') {
       this.selectedShow = null;
       try {
-        const endpoint = type === 'series' ? `/series/${id}/extended` : `/movies/${id}/extended`; // Usamos 'extended' para películas también
+        const endpoint = type === 'series' ? `/series/${id}/extended` : `/movies/${id}/extended`; 
         const response = await this.fetchFromApi(endpoint);
-        // La función de normalización ya se encarga de procesar los trailers
+  
         this.selectedShow = normalizeDetailResponse(response.data);
         if (this.selectedShow) {
           this.selectedShow.type = type;
