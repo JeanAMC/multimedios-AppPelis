@@ -1,80 +1,97 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useUserListStore } from '../stores/userList';
+import { computed, ref } from 'vue';
+import { useUserListStore, type WatchingShow } from '../stores/userList'; // Importamos WatchingShow
 import { RouterLink } from 'vue-router';
-import type { Show } from '../stores/tvShows'; 
-import SearchBar from '../components/SearchBar.vue'; 
+import type { Show } from '../stores/tvShows';
+import SearchBar from '../components/SearchBar.vue';
 
 const userListStore = useUserListStore();
+const activeTab = ref<'series' | 'movie'>('series');
+const filteredWatchlist = computed(() => 
+  userListStore.watchlist.filter(show => show.type === activeTab.value)
+);
+const filteredWatched = computed(() => 
+  userListStore.watched.filter(show => show.type === activeTab.value)
+);
+const filteredFavorites = computed(() => 
+  userListStore.favorites.filter(show => show.type === activeTab.value)
+);
+const filteredWatching = computed(() => 
+  userListStore.watching.filter(show => show.type === activeTab.value)
+);
 
-// Usamos las propiedades computadas directamente desde la store
-const watchlist = computed(() => userListStore.watchlist);
-const watched = computed(() => userListStore.watched);
-const favorites = computed(() => userListStore.favorites);
-const watching = computed(() => userListStore.watching);
-
-// Función para obtener la portada de las carpetas
 const getFolderCover = (list: Show[], index: number): string => {
   if (list && list.length > index) {
     return list[index].image_url ?? '';
   }
-  // Retorna una imagen transparente si no hay show para esa posición
   return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 };
 </script>
 
 <template>
   <div class="myshows-container">
-    <SearchBar /> <nav class="tabs">
-      <button class="tab active">TV series</button>
-      <button class="tab">Movies</button>
+    <SearchBar />
+
+    <nav class="tabs">
+      <button 
+        class="tab" 
+        :class="{ active: activeTab === 'series' }"
+        @click="activeTab = 'series'"
+      >
+        TV series
+      </button>
+      <button 
+        class="tab" 
+        :class="{ active: activeTab === 'movie' }"
+        @click="activeTab = 'movie'"
+      >
+        Movies
+      </button>
     </nav>
 
     <section class="lists-grid">
       <RouterLink to="/my-lists/watchlist" class="list-link">
         <div class="list-folder">
           <div class="thumbnail-grid">
-            <img :src="getFolderCover(watchlist, 0)" alt="" />
-            <img :src="getFolderCover(watchlist, 1)" alt="" />
-            <img :src="getFolderCover(watchlist, 2)" alt="" />
-            <img :src="getFolderCover(watchlist, 3)" alt="" />
+            <img :src="getFolderCover(filteredWatchlist, 0)" alt="" />
+            <img :src="getFolderCover(filteredWatchlist, 1)" alt="" />
+            <img :src="getFolderCover(filteredWatchlist, 2)" alt="" />
+            <img :src="getFolderCover(filteredWatchlist, 3)" alt="" />
           </div>
           <div class="folder-info">
             <span>👁️</span>
             <p>Watchlist</p>
-            <span>{{ watchlist.length }}</span>
+            <span>{{ filteredWatchlist.length }}</span>
           </div>
         </div>
       </RouterLink>
-
       <RouterLink to="/my-lists/watched" class="list-link">
         <div class="list-folder">
           <div class="thumbnail-grid">
-            <img :src="getFolderCover(watched, 0)" alt="" />
-            <img :src="getFolderCover(watched, 1)" alt="" />
-            <img :src="getFolderCover(watched, 2)" alt="" />
-            <img :src="getFolderCover(watched, 3)" alt="" />
+            <img :src="getFolderCover(filteredWatched, 0)" alt="" />
+            <img :src="getFolderCover(filteredWatched, 1)" alt="" />
+            <img :src="getFolderCover(filteredWatched, 2)" alt="" />
+            <img :src="getFolderCover(filteredWatched, 3)" alt="" />
           </div>
           <div class="folder-info">
             <span>✅</span>
             <p>Watched</p>
-            <span>{{ watched.length }}</span>
+            <span>{{ filteredWatched.length }}</span>
           </div>
         </div>
       </RouterLink>
-
       <RouterLink to="/my-lists/favorites" class="list-link">
         <div class="list-folder">
           <div class="thumbnail-grid">
-            <img :src="getFolderCover(favorites, 0)" alt="" />
-            <img :src="getFolderCover(favorites, 1)" alt="" />
-            <img :src="getFolderCover(favorites, 2)" alt="" />
-            <img :src="getFolderCover(favorites, 3)" alt="" />
+            <img :src="getFolderCover(filteredFavorites, 0)" alt="" />
+            <img :src="getFolderCover(filteredFavorites, 1)" alt="" />
+            <img :src="getFolderCover(filteredFavorites, 2)" alt="" />
+            <img :src="getFolderCover(filteredFavorites, 3)" alt="" />
           </div>
           <div class="folder-info">
             <span>⭐</span>
             <p>Favorites</p>
-            <span>{{ favorites.length }}</span>
+            <span>{{ filteredFavorites.length }}</span>
           </div>
         </div>
       </RouterLink>
@@ -86,12 +103,12 @@ const getFolderCover = (list: Show[], index: number): string => {
         <button>⋮</button>
       </div>
       <div class="watching-list">
-        <article v-for="show in watching" :key="show.id" class="watching-item">
-          <img :src="show.image_url" :alt="show.name" class="watching-poster" />
+        <article v-for="show in filteredWatching" :key="show.id" class="watching-item">
+          <img :src="show.image_url || ''" :alt="show.name" class="watching-poster" />
           <div class="watching-info">
             <h3>{{ show.name }}</h3>
             <p class="episode-details" v-if="show.progress">
-              s0{{ show.progress.season }}e0{{ show.progress.episode }}
+              s0{{ show.progress.season.toString().padStart(2, '0') }}e{{ show.progress.episode.toString().padStart(2, '0') }}
             </p>
             <div class="progress-bar" v-if="show.progress">
               <div class="progress" :style="{ width: (show.progress.episode / show.progress.totalEpisodes) * 100 + '%' }"></div>
@@ -106,8 +123,8 @@ const getFolderCover = (list: Show[], index: number): string => {
             </div>
           </div>
         </article>
-         <div v-if="watching.length === 0" class="empty-list-message">
-          <p>No estás viendo ninguna serie ahora mismo.</p>
+        <div v-if="filteredWatching.length === 0" class="empty-list-message">
+          <p>No estás viendo ninguna serie o película ahora mismo.</p>
         </div>
       </div>
     </section>
@@ -115,16 +132,12 @@ const getFolderCover = (list: Show[], index: number): string => {
 </template>
 
 <style scoped>
-/* Estilos existentes (no necesitan cambios) */
+.myshows-container {
+  padding: 20px;
+}
 .list-link {
   text-decoration: none;
   color: inherit;
-}
-.myshows-container {
-  background-color: #1F1D2B;
-  padding: 15px;
-  color: white;
-  min-height: 100vh;
 }
 .tabs {
   display: flex;
@@ -153,6 +166,11 @@ const getFolderCover = (list: Show[], index: number): string => {
   overflow-x: auto;
   padding-bottom: 10px;
   margin-bottom: 25px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.lists-grid::-webkit-scrollbar {
+  display: none;
 }
 .list-folder {
   background-color: #252836;
@@ -195,7 +213,10 @@ const getFolderCover = (list: Show[], index: number): string => {
   font-weight: bold;
   flex-grow: 1;
 }
-.watching-section .watching-header {
+.watching-section {
+  margin-top: 30px;
+}
+.watching-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -203,6 +224,7 @@ const getFolderCover = (list: Show[], index: number): string => {
 }
 .watching-header h2 {
   margin: 0;
+  font-size: 1.4rem;
 }
 .watching-header button {
   background: none;
@@ -249,6 +271,7 @@ const getFolderCover = (list: Show[], index: number): string => {
   border-radius: 10px;
   height: 6px;
   overflow: hidden;
+  margin-bottom: 4px;
 }
 .progress {
   background-color: #8A72DB;
@@ -259,31 +282,29 @@ const getFolderCover = (list: Show[], index: number): string => {
   justify-content: space-between;
   font-size: 0.7rem;
   color: #aaa;
-  margin: 4px 0 10px;
+  margin-bottom: 10px;
 }
 .watching-actions {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   margin-top: auto;
 }
-.watched-button {
+.watched-button, .summary-link {
   flex-grow: 1;
-  background-color: #8A72DB;
-  color: white;
   border: none;
   border-radius: 8px;
   padding: 8px;
   font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  color: white;
+  cursor: pointer;
+}
+.watched-button {
+  background-color: #8A72DB;
 }
 .summary-link {
-  flex-grow: 1;
   background-color: #333140;
-  color: white;
-  text-decoration: none;
-  border-radius: 8px;
-  padding: 8px;
-  text-align: center;
-  font-weight: bold;
 }
 .empty-list-message {
   background-color: #252836;

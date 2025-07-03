@@ -12,7 +12,7 @@ import UserListView from '../views/UserListView.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Rutas públicas (sin layout)
+
     {
       path: '/login',
       name: 'login',
@@ -23,7 +23,7 @@ const router = createRouter({
       name: 'register',
       component: RegisterView,
     },
-    // Rutas protegidas o que usan MovieLayout
+
     {
       path: '/',
       name: 'main',
@@ -55,7 +55,7 @@ const router = createRouter({
           component: SearchView,
         },
         {
-          path: 'my-lists/:listName', // :listName será 'watchlist', 'watched', etc.
+          path: 'my-lists/:listName', 
           name: 'UserList',
           component: UserListView,
         },
@@ -67,7 +67,6 @@ const router = createRouter({
       ],
     },
     
-    // Redirección por defecto a login
     {
       path: '/:pathMatch(.*)*',
       redirect: '/login',

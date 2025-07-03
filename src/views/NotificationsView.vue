@@ -10,7 +10,6 @@ onMounted(() => {
   showsStore.checkForUpdates();
 });
 
-// Función para convertir el timestamp a una fecha legible
 const formatDate = (timestamp: number) => {
   return new Date(timestamp * 1000).toLocaleString();
 };

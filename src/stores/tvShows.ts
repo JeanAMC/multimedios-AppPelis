@@ -58,8 +58,6 @@ const baseUrl = 'https://api4.thetvdb.com/v4';
 const imageBaseUrl = 'https://artworks.thetvdb.com';
 
 
-// --- FUNCIONES HELPER ---
-
 function isAbsoluteUrl(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
 }
