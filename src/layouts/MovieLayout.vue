@@ -1,8 +1,6 @@
 <template>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <header>
-    <input type="search" placeholder="Search" class="search-bar" />
-    <div class="profile-icon"></div>
   </header>
   <RouterView/>
   <footer>

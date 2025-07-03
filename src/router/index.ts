@@ -5,6 +5,8 @@ import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import DetallesView from '@/views/DetallesView.vue'
 import NotificationsView from '@/views/NotificationsView.vue'
+import SearchView from '../views/SearchView.vue'; 
+import UserListView from '../views/UserListView.vue';
 
 
 const router = createRouter({
@@ -48,12 +50,23 @@ const router = createRouter({
           component: DetallesView,
         },
         {
+          path: 'search',
+          name: 'Search',
+          component: SearchView,
+        },
+        {
+          path: 'my-lists/:listName', // :listName será 'watchlist', 'watched', etc.
+          name: 'UserList',
+          component: UserListView,
+        },
+        {
          path: 'NotificationsView',
          name: 'NotificationsView',
          component: NotificationsView,
       },
       ],
     },
+    
     // Redirección por defecto a login
     {
       path: '/:pathMatch(.*)*',

@@ -22,12 +22,14 @@ export interface Season {
   episodes_count: number;
 }
 
+// 1. Interfaz actualizada para incluir trailers
 export interface ShowDetails extends Show {
   characters?: Actor[];
   seasons?: Season[];
   artworks?: { id: number; image: string }[];
   nextAired?: { airDate: string; name: string };
   runtime?: number;
+  trailers?: { id: number; name: string; url: string; runtime: number; videoId: string }[];
 }
 
 export interface Update {
@@ -46,6 +48,7 @@ export interface TvShowsState {
   isAuthenticating: boolean;
   selectedShow: ShowDetails | null;
   notifications: Update[];
+  searchResults: Show[];
 }
 
 const apiKey: string | undefined = import.meta.env.VITE_THETVDB_API_KEY;
@@ -56,6 +59,9 @@ if (!apiKey) {
 const baseUrl = 'https://api4.thetvdb.com/v4';
 const imageBaseUrl = 'https://artworks.thetvdb.com';
 
+
+// --- FUNCIONES HELPER ---
+
 function isAbsoluteUrl(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
 }
@@ -63,6 +69,14 @@ function isAbsoluteUrl(url: string): boolean {
 function prependIfRelative(url: string | null): string | null {
   if (!url) return null;
   return isAbsoluteUrl(url) ? url : `${imageBaseUrl}${url}`;
+}
+
+// 2. Nueva función para extraer el ID de YouTube
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
 }
 
 function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | string): Show[] {
@@ -79,6 +93,7 @@ function normalizeApiResponse(apiData: any[], itemType: 'movie' | 'series' | str
   });
 }
 
+// 3. Función de normalización de detalles ACTUALIZADA
 function normalizeDetailResponse(item: any): ShowDetails {
   item.image_url = prependIfRelative(item.image || item.poster || item.image_url || null);
 
@@ -96,10 +111,26 @@ function normalizeDetailResponse(item: any): ShowDetails {
     }));
   }
 
+  // Lógica añadida para procesar los trailers
+  if (item.trailers) {
+    item.trailers = item.trailers
+      .map((trailer: any) => {
+        const videoId = extractYouTubeId(trailer.url);
+        if (videoId) {
+          // Devolvemos el objeto del trailer con el videoId añadido
+          return { ...trailer, videoId };
+        }
+        return null; // Descartamos si no es un video de YouTube
+      })
+      .filter((trailer: any) => trailer !== null); // Limpiamos los resultados nulos
+  }
+
   return item;
 }
 
-// --- Definición del Store ---
+
+// --- DEFINICIÓN DEL STORE ---
+
 export const useTvShowsStore = defineStore('tvShows', {
   state: (): TvShowsState => ({
     token: null,
@@ -109,6 +140,7 @@ export const useTvShowsStore = defineStore('tvShows', {
     isAuthenticating: false,
     selectedShow: null,
     notifications: [],
+    searchResults: [],
   }),
 
   actions: {
@@ -173,21 +205,24 @@ export const useTvShowsStore = defineStore('tvShows', {
       }
     },
 
-    async searchShows(query: string) {
+    async searchAll(query: string) {
+      this.searchResults = [];
+      if (!query || query.trim() === '') return;
       try {
         const response = await this.fetchFromApi(`/search?query=${encodeURIComponent(query)}`);
-        this.shows = normalizeApiResponse(response.data, '');
+        this.searchResults = normalizeApiResponse(response.data, '');
       } catch (error) {
         console.error('Error en la búsqueda:', error);
-        this.shows = [];
+        this.searchResults = [];
       }
     },
 
     async fetchDetails(id: string, type: 'movie' | 'series') {
       this.selectedShow = null;
       try {
-        const endpoint = type === 'series' ? `/series/${id}/extended` : `/movies/${id}`;
+        const endpoint = type === 'series' ? `/series/${id}/extended` : `/movies/${id}/extended`; // Usamos 'extended' para películas también
         const response = await this.fetchFromApi(endpoint);
+        // La función de normalización ya se encarga de procesar los trailers
         this.selectedShow = normalizeDetailResponse(response.data);
         if (this.selectedShow) {
           this.selectedShow.type = type;
